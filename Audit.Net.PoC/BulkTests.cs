@@ -22,35 +22,35 @@ namespace Audit.Net.PoC
                 Message message = new Message
                 {
                     MessageId = Guid.NewGuid(),
-                    Column1 = lorem.Sentence(4,10) + i,
-                    Column2 = lorem.Sentence(4,10) + i,
-                    Column3 = lorem.Sentence(4,10) + i,
-                    Column4 = lorem.Sentence(4,10) + i,
-                    Column5 = lorem.Sentence(4,10) + i,
-                    Column6 = lorem.Sentence(4,10) + i,
-                    Column7 = lorem.Sentence(4,10) + i,
-                    Column8 = lorem.Sentence(4,10) + i,
+                    Column1 = lorem.Sentence(4, 10) + i,
+                    Column2 = lorem.Sentence(4, 10) + i,
+                    Column3 = lorem.Sentence(4, 10) + i,
+                    Column4 = lorem.Sentence(4, 10) + i,
+                    Column5 = lorem.Sentence(4, 10) + i,
+                    Column6 = lorem.Sentence(4, 10) + i,
+                    Column7 = lorem.Sentence(4, 10) + i,
+                    Column8 = lorem.Sentence(4, 10) + i,
                     Column9 = lorem.Sentence(4, 10) + i,
-                    Column10 = lorem.Sentence(4,10) + i,
-                    Column11 = lorem.Sentence(4,10) + i,
-                    Column12 = lorem.Sentence(4,10) + i,
-                    Column13 = lorem.Sentence(4,10) + i,
-                    Column14 = lorem.Sentence(4,10) + i,
-                    Column15 = lorem.Sentence(4,10) + i,
-                    Column16 = lorem.Sentence(4,10) + i,
-                    Column17 = lorem.Sentence(4,10) + i,
-                    Column18 = lorem.Sentence(4,10) + i,
-                    Column19 = lorem.Sentence(4,10) + i,
-                    Column20 = lorem.Sentence(4,10) + i,
-                    Column21 = lorem.Sentence(4,10) + i,
-                    Column22 = lorem.Sentence(4,10) + i,
-                    Column23 = lorem.Sentence(4,10) + i,
-                    Column24 = lorem.Sentence(4,10) + i,
-                    Column25 = lorem.Sentence(4,10) + i,
-                    Column26 = lorem.Sentence(4,10) + i,
-                    Column27 = lorem.Sentence(4,10) + i,
-                    Column28 = lorem.Sentence(4,10) + i,
-                    Column29 = lorem.Sentence(4,10) + i,
+                    Column10 = lorem.Sentence(4, 10) + i,
+                    Column11 = lorem.Sentence(4, 10) + i,
+                    Column12 = lorem.Sentence(4, 10) + i,
+                    Column13 = lorem.Sentence(4, 10) + i,
+                    Column14 = lorem.Sentence(4, 10) + i,
+                    Column15 = lorem.Sentence(4, 10) + i,
+                    Column16 = lorem.Sentence(4, 10) + i,
+                    Column17 = lorem.Sentence(4, 10) + i,
+                    Column18 = lorem.Sentence(4, 10) + i,
+                    Column19 = lorem.Sentence(4, 10) + i,
+                    Column20 = lorem.Sentence(4, 10) + i,
+                    Column21 = lorem.Sentence(4, 10) + i,
+                    Column22 = lorem.Sentence(4, 10) + i,
+                    Column23 = lorem.Sentence(4, 10) + i,
+                    Column24 = lorem.Sentence(4, 10) + i,
+                    Column25 = lorem.Sentence(4, 10) + i,
+                    Column26 = lorem.Sentence(4, 10) + i,
+                    Column27 = lorem.Sentence(4, 10) + i,
+                    Column28 = lorem.Sentence(4, 10) + i,
+                    Column29 = lorem.Sentence(4, 10) + i,
                     Column30 = lorem.Sentence(4, 10) + i,
                 };
 
@@ -93,13 +93,16 @@ namespace Audit.Net.PoC
             try
             {
                 context = new TestContext();
-
-                foreach (var item in GetMessages())
+                using (var tran = context.Database.BeginTransaction())
                 {
-                    await context.AddAsync(item);
-                }
+                    foreach (var item in GetMessages())
+                    {
+                        await context.AddAsync(item);
+                    }
 
-                await context.SaveChangesAsync();
+                    await context.SaveChangesAsync().ConfigureAwait(false);
+                    await tran.CommitAsync().ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
@@ -133,12 +136,10 @@ namespace Audit.Net.PoC
                     )
                 );
 
+            TestContext context = new TestContext();
 
-            TestContext context = null;
             try
             {
-                context = new TestContext();
-
                 int count = 0;
                 foreach (var entityToInsert in GetMessages())
                 {
@@ -148,15 +149,18 @@ namespace Audit.Net.PoC
 
                 await context.SaveChangesAsync().ConfigureAwait(false);
             }
+
             catch (Exception ex)
             {
                 var a = ex;
+                throw;
             }
             finally
             {
                 if (context != null)
                     context.Dispose();
             }
+
         }
 
         private async Task<TestContext> AddToContextAsync(TestContext context, Message entity, int count, int commitCount, bool recreateContext)
@@ -200,16 +204,19 @@ namespace Audit.Net.PoC
             try
             {
                 context = new TestContext();
-
-                var messages = await context.Set<Message>().ToListAsync().ConfigureAwait(false);
-
-                foreach (var item in messages)
+                using (var tran = context.Database.BeginTransaction())
                 {
-                    item.Column1 = item.Column1 + "updated+3";
-                    context.Update(item);
-                }
+                    var messages = await context.Set<Message>().ToListAsync().ConfigureAwait(false);
 
-                await context.SaveChangesAsync();
+                    foreach (var item in messages)
+                    {
+                        item.Column1 = item.Column1 + "updated+3";
+                        context.Update(item);
+                    }
+
+                    await context.SaveChangesAsync().ConfigureAwait(false);
+                    await tran.CommitAsync().ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
@@ -248,6 +255,7 @@ namespace Audit.Net.PoC
             try
             {
                 context = new TestContext();
+
                 context.ChangeTracker.AutoDetectChangesEnabled = false;
                 var messages = await context.Set<Message>().ToListAsync().ConfigureAwait(false);
                 int count = 0;
@@ -259,10 +267,12 @@ namespace Audit.Net.PoC
                 }
 
                 await context.SaveChangesAsync().ConfigureAwait(false);
+
             }
             catch (Exception ex)
             {
                 var a = ex;
+                throw;
             }
             finally
             {
